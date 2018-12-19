@@ -1,0 +1,71 @@
+﻿@model CodeGenViewModel
+@{
+    ViewData["Title"] = "Index";
+}
+
+<div class="row">
+    <div class="col-md-12" style="padding:50px;">
+        @using (Html.BeginForm(nameof(CodeGenController.AddDb),"CodeGen"))
+        {
+            <div class="form-group">
+                <label for="connectionString">Connection String</label>
+                <input type="text" class="form-control" id="connectionString" name="connectionString">                
+            </div>
+            <button type="submit" class="btn btn-primary">Add</button>
+        }
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6" style="padding:50px;">
+        @using (Html.BeginForm(nameof(CodeGenController.CreateCode), "CodeGen",null, FormMethod.Post,false,new { enctype = "multipart/form-data" }))
+        {
+            <ul>
+                @for (int i = 0; i < Model.Dbs.Count; i++)
+                {
+                    var db = Model.Dbs[i];
+
+                    <li>
+                        @db.Name
+
+                        <ul>
+                            @for (int j = 0; j < db.Tables.Count; j++)
+                            {
+                                var table = db.Tables[j];
+
+                                <li>
+                                    @Html.CheckBox($"dbDtos[{i}].Tables[{j}].IsNeed", table.IsNeed)
+                                    @*<input type="checkbox" name="@($"dbDtos[{i}].Tables[{j}].IsNeed")" value="true" />*@                                    
+                                    @table.Name
+                                </li>
+                            }
+                        </ul>
+                    </li>
+                }
+            </ul>
+
+            <div style="margin-top:20px;margin-bottom:20px;">
+                @Html.CheckBox($"IsCreate", Model.IsCreate)
+                是否使用新建立
+
+                <div>
+                    <input type="file" name="zipfile" accept=".zip" />
+                    更新請上傳Model壓縮檔
+                </div>
+
+            </div>
+            <div>
+                @Html.CheckBox($"IsNeedAttributes", Model.IsNeedAttributes)
+                是否套用Attribute
+            </div>
+
+            
+
+            <button type="submit" class="btn btn-primary">Create Code</button>
+        }
+    </div>
+    <div class="col-md-6">
+        bbbbbbbbbb
+    </div>
+</div>
+
