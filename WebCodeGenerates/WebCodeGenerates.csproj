@@ -12,12 +12,28 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CodeGenerates.Core\CodeGenerates.Core.csproj" />
+    <ProjectReference Include="..\CodeGenerates.Service\CodeGenerates.Service.csproj" />
     <ProjectReference Include="..\DbService\DbService.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="wwwroot\unZip\" />
     <Folder Include="wwwroot\uploadFile\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Update="wwwroot\unZip\bc3d8a15-5726-4318-94b8-f127d6d0e4d3\GashEPin.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </Content>
+    <Content Update="wwwroot\unZip\bc3d8a15-5726-4318-94b8-f127d6d0e4d3\GashEPinLog.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </Content>
+    <Content Update="wwwroot\unZip\caaa0115-a194-4432-b461-deaef200edf1\GashEPin.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </Content>
+    <Content Update="wwwroot\unZip\caaa0115-a194-4432-b461-deaef200edf1\GashEPinLog.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </Content>
   </ItemGroup>
 
 </Project>

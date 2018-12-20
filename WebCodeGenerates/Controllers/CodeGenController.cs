@@ -10,6 +10,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using WebCodeGenerates.Models;
+using System.IO.Compression;
+using CodeGenerates.Service.Service;
 
 namespace WebCodeGenerates.Controllers
 {
@@ -44,13 +46,16 @@ namespace WebCodeGenerates.Controllers
             _unZipFolder = $@"{env.WebRootPath}\unZip";
         }
 
+        
         public IActionResult Index()
         {
 
-            return View(new CodeGenViewModel {
+            return View(new CodeGenViewModel
+            {
                 Dbs = DbTmpData.Dbs,
                 IsCreate = DbTmpData.IsCreate,
-                IsNeedAttributes = DbTmpData.IsNeedAttributes
+                IsNeedAttributes = DbTmpData.IsNeedAttributes,
+                Models = DbTmpData.Mdeols
             });
         }
 
@@ -63,7 +68,7 @@ namespace WebCodeGenerates.Controllers
         }
 
         [HttpPost]
-        public IActionResult CreateCode(List<DbDto> dbDtos, bool IsCreate, bool IsNeedAttributes, IFormFile zipfile)
+        public IActionResult CreateCode(List<DbDto> dbDtos, bool IsCreate, bool IsNeedAttributes,bool IsPlural, IFormFile zipfile)
         {
             for (int i = 0; i < dbDtos.Count; i++)
             {
@@ -82,6 +87,8 @@ namespace WebCodeGenerates.Controllers
             DbTmpData.IsCreate = IsCreate;
             DbTmpData.IsNeedAttributes = IsNeedAttributes;
 
+            string extractPath = $"{_unZipFolder}/{Guid.NewGuid().ToString()}";
+
             if (!IsCreate)
             {
                 if (zipfile != null)
@@ -91,8 +98,19 @@ namespace WebCodeGenerates.Controllers
                     {
                         zipfile.CopyTo(stream);
                     }
+
+                    if (!Directory.Exists(extractPath))
+                    {
+                        Directory.CreateDirectory(extractPath);
+                    }
+
+                    ZipFile.ExtractToDirectory(path, extractPath);
                 }
             }
+
+            var ss = new AnalysisRewriteService(new CodeGenerates.Service.SyntaxCommand());
+
+            DbTmpData.Mdeols = ss.UpdateModels(extractPath, DbTmpData.Dbs, IsPlural, IsNeedAttributes);
 
             return RedirectToAction(nameof(Index));
         }

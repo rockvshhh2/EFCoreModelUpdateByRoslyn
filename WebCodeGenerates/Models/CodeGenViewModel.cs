@@ -13,5 +13,9 @@ namespace WebCodeGenerates.Models
         public bool IsCreate { get; set; }
 
         public bool IsNeedAttributes { get; set; }
+
+        public bool IsPlural { get; set; }
+
+        public List<string> Models { get; set; }
     }
 }

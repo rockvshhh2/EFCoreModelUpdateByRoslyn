@@ -59,13 +59,24 @@
                 是否套用Attribute
             </div>
 
-            
+            <div style="margin-top:20px;margin-bottom:20px;">
+                @Html.CheckBox($"IsPlural", Model.IsPlural)
+                資料表是否有復數命名
+            </div>
 
             <button type="submit" class="btn btn-primary">Create Code</button>
         }
     </div>
     <div class="col-md-6">
-        bbbbbbbbbb
+        @if (Model.Models != null)
+        {
+            foreach (var item in Model.Models)
+            {
+                <div style="margin-top:20px;border:1px solid red;">
+                    @item
+                </div>
+            }
+        }
     </div>
 </div>
 

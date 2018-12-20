@@ -25,6 +25,11 @@ namespace CodeGenerates.Core.Dto
         public bool IsNeed { get; set; }
 
         /// <summary>
+        /// 是否需要特性
+        /// </summary>
+        public bool IsNeedAttributes { get; set; }
+
+        /// <summary>
         /// 資料欄位
         /// </summary>
         public List<ColumnDto> Columns { get; set; }
