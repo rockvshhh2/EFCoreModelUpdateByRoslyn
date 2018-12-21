@@ -16,6 +16,8 @@ namespace WebCodeGenerates.Models
 
         public bool IsPlural { get; set; }
 
+        public bool IsCreateView { get; set; }
+
         public List<string> Models { get; set; }
     }
 }

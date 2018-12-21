@@ -18,7 +18,7 @@
 
 <div class="row">
     <div class="col-md-6" style="padding:50px;">
-        @using (Html.BeginForm(nameof(CodeGenController.CreateCode), "CodeGen",null, FormMethod.Post,false,new { enctype = "multipart/form-data" }))
+        @using (Html.BeginForm(nameof(CodeGenController.CreateCode), "CodeGen", null, FormMethod.Post, false, new { enctype = "multipart/form-data" }))
         {
             <ul>
                 @for (int i = 0; i < Model.Dbs.Count; i++)
@@ -35,7 +35,7 @@
 
                                 <li>
                                     @Html.CheckBox($"dbDtos[{i}].Tables[{j}].IsNeed", table.IsNeed)
-                                    @*<input type="checkbox" name="@($"dbDtos[{i}].Tables[{j}].IsNeed")" value="true" />*@                                    
+                                    @*<input type="checkbox" name="@($"dbDtos[{i}].Tables[{j}].IsNeed")" value="true" />*@
                                     @table.Name
                                 </li>
                             }
@@ -62,6 +62,11 @@
             <div style="margin-top:20px;margin-bottom:20px;">
                 @Html.CheckBox($"IsPlural", Model.IsPlural)
                 資料表是否有復數命名
+            </div>
+
+            <div style="margin-top:20px;margin-bottom:20px;">
+                @Html.CheckBox($"IsCreateView", Model.IsCreateView)
+                是否建立檢視
             </div>
 
             <button type="submit" class="btn btn-primary">Create Code</button>

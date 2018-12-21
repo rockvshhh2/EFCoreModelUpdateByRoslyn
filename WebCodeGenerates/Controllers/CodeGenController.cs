@@ -68,7 +68,7 @@ namespace WebCodeGenerates.Controllers
         }
 
         [HttpPost]
-        public IActionResult CreateCode(List<DbDto> dbDtos, bool IsCreate, bool IsNeedAttributes,bool IsPlural, IFormFile zipfile)
+        public IActionResult CreateCode(List<DbDto> dbDtos, bool IsCreate, bool IsNeedAttributes,bool IsPlural, bool IsCreateView, IFormFile zipfile)
         {
             for (int i = 0; i < dbDtos.Count; i++)
             {
@@ -108,9 +108,9 @@ namespace WebCodeGenerates.Controllers
                 }
             }
 
-            var ss = new AnalysisRewriteService(new CodeGenerates.Service.SyntaxCommand());
+            var ss = new AnalysisRewriteService(new CodeGenerates.Service.SyntaxCommand(),new CodeGenerates.Service.DbSyntaxCreator());
 
-            DbTmpData.Mdeols = ss.UpdateModels(extractPath, DbTmpData.Dbs, IsPlural, IsNeedAttributes);
+            DbTmpData.Mdeols = ss.UpdateModels(extractPath, DbTmpData.Dbs, IsPlural, IsNeedAttributes, IsCreateView);
 
             return RedirectToAction(nameof(Index));
         }

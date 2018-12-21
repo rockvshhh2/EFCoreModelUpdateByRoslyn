@@ -17,13 +17,15 @@ namespace CodeGenerates.Service.Service
     public class AnalysisRewriteService
     {
         private readonly SyntaxCommand _syntaxCommand;
+        private readonly DbSyntaxCreator _dbSyntaxCreator;
 
-        public AnalysisRewriteService(SyntaxCommand syntaxCommand)
+        public AnalysisRewriteService(SyntaxCommand syntaxCommand, DbSyntaxCreator dbSyntaxCreator)
         {
             _syntaxCommand = syntaxCommand;
+            _dbSyntaxCreator = dbSyntaxCreator;
         }
 
-        public List<string> UpdateModels(string modelPath, List<DbDto> dbDtos,bool IsPlural, bool IsNeedAttributes)
+        public List<string> UpdateModels(string modelPath, List<DbDto> dbDtos,bool IsPlural, bool IsNeedAttributes, bool IsCreateView)
         {
             List<string> modelStrings = new List<string>();
 
@@ -49,35 +51,8 @@ namespace CodeGenerates.Service.Service
 
                 List<NamespaceDeclarationSyntax> finalMemebers = new List<NamespaceDeclarationSyntax>();
 
-                foreach (var nameSpaceSyntax in cs.Members.OfType<NamespaceDeclarationSyntax>())
+                foreach (NamespaceDeclarationSyntax nameSpaceSyntax in cs.Members.OfType<NamespaceDeclarationSyntax>())
                 {
-                    List<ClassDeclarationSyntax> finalClass = new List<ClassDeclarationSyntax>();
-
-                    foreach (ClassDeclarationSyntax @class in nameSpaceSyntax.Members.OfType<ClassDeclarationSyntax>())
-                    {
-                        TableDto matchTable = dbDtos
-                            .SelectMany(x => x.Tables)
-                            .Where(x => IsPlural ? x.Name == $"{@class.Identifier.Text}s" : x.Name == @class.Identifier.Text)
-                            .FirstOrDefault();
-
-                        if (matchTable == null)
-                        {
-                            finalClass.Add(@class);
-                            continue;
-                        }
-
-                        if (!matchTable.IsNeed)
-                        {
-                            finalClass.Add(@class);
-                            continue;
-                        }
-
-                        matchTable.IsNeedAttributes = IsNeedAttributes;
-                        EntityColumRewriter rewriter = new EntityColumRewriter(matchTable, new SyntaxCommand());
-
-                        finalClass.Add(rewriter.Visit(@class) as ClassDeclarationSyntax);
-                    }
-
                     List<UsingDirectiveSyntax> usings = new List<UsingDirectiveSyntax> {
                         _syntaxCommand.CreateNamespace("System.ComponentModel.DataAnnotations")
                     };
@@ -90,6 +65,116 @@ namespace CodeGenerates.Service.Service
                     {
                         cs = cs.WithUsings(SyntaxFactory.List(usings));
                     }
+
+                    List<ClassDeclarationSyntax> finalClass = new List<ClassDeclarationSyntax>();
+
+                    foreach (ClassDeclarationSyntax @class in nameSpaceSyntax.Members.OfType<ClassDeclarationSyntax>())
+                    {
+                        var isDbContext = @class.BaseList?.Types.Any(x => x.Kind() == SyntaxKind.SimpleBaseType && x.Type.ToString().Contains("DbContext"));
+
+                        if (isDbContext != null && isDbContext.HasValue && isDbContext.Value)
+                        {
+                            IEnumerable<TableDto> matchViews = dbDtos
+                                .SelectMany(x => x.Tables)
+                                .Where(x => x.IsView);
+
+                            List<MemberDeclarationSyntax> members = new List<MemberDeclarationSyntax>();
+
+                            members.AddRange(@class.Members);
+
+                            foreach (var view in matchViews)
+                            {
+                                string viewModelName = $"{view.Name}Model";
+
+                                #region DB Context
+
+                                members.Add(_dbSyntaxCreator.DbQuerySyntaxCreator(viewModelName));
+
+                                members.Add(SyntaxFactory.PropertyDeclaration(
+                                    SyntaxFactory.GenericName(SyntaxFactory.Identifier("IQueryable"))
+                                    .WithTypeArgumentList(SyntaxFactory.TypeArgumentList(SyntaxFactory.SingletonSeparatedList<TypeSyntax>(SyntaxFactory.IdentifierName(viewModelName))))
+                                    , SyntaxFactory.Identifier($"{view.Name}")
+                                    )
+                                    .WithModifiers(SyntaxFactory.TokenList(
+                                        SyntaxFactory.Token(SyntaxKind.PublicKeyword)
+                                        ))
+                                    .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(
+                                        SyntaxFactory.InvocationExpression(
+                                            SyntaxFactory.MemberAccessExpression(
+                                                SyntaxKind.SimpleMemberAccessExpression,
+                                                SyntaxFactory.MemberAccessExpression(
+                                                    SyntaxKind.SimpleMemberAccessExpression,
+                                                    SyntaxFactory.ThisExpression(),
+                                                    SyntaxFactory.IdentifierName(viewModelName)),
+                                                SyntaxFactory.IdentifierName("FromSql")))
+                                                .WithArgumentList(SyntaxFactory.ArgumentList(
+                                                        SyntaxFactory.SingletonSeparatedList(
+                                                        SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(
+                                                            SyntaxKind.StringLiteralExpression,
+                                                            SyntaxFactory.Literal($"SELECT * FROM {view.Name}")
+                                                            ))
+                                                        ))
+                                                    )
+                                        ))
+                                        .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
+                                );
+
+                                #endregion
+
+                                #region Entity
+
+                                CompilationUnitSyntax viewCsFile = SyntaxFactory.CompilationUnit();
+
+                                viewCsFile = viewCsFile.WithUsings(SyntaxFactory.List(usings));
+
+                                ClassDeclarationSyntax viewClass = _dbSyntaxCreator.EntitySyntaxCreator(view);
+
+                                var viewNamespace = nameSpaceSyntax.WithMembers(SyntaxFactory.List<MemberDeclarationSyntax>(
+                                    new MemberDeclarationSyntax[] {
+                                        viewClass
+                                    }
+                                    ));
+
+                                viewCsFile = viewCsFile.WithMembers(SyntaxFactory.List<MemberDeclarationSyntax>(
+                                    new MemberDeclarationSyntax[] {
+                                        viewNamespace
+                                    }
+                                    ));
+
+                                File.WriteAllText($"{modelPath}\\{view.Name}.cs", viewCsFile.NormalizeWhitespace().ToString());
+
+                                #endregion
+                            }
+
+                            finalClass.Add(@class.WithMembers(
+                                SyntaxFactory.List(members)
+                                ));
+                        }
+                        else
+                        {
+                            TableDto matchTable = dbDtos
+                                .SelectMany(x => x.Tables)
+                                .Where(x => !x.IsView && IsPlural ? x.Name == $"{@class.Identifier.Text}s" : x.Name == @class.Identifier.Text)
+                                .FirstOrDefault();
+
+                            if (matchTable == null)
+                            {
+                                finalClass.Add(@class);
+                                continue;
+                            }
+
+                            if (!matchTable.IsNeed)
+                            {
+                                finalClass.Add(@class);
+                                continue;
+                            }
+
+                            matchTable.IsNeedAttributes = IsNeedAttributes;
+                            EntityColumRewriter rewriter = new EntityColumRewriter(matchTable, new SyntaxCommand());
+
+                            finalClass.Add(rewriter.Visit(@class) as ClassDeclarationSyntax);
+                        }
+                    }                    
 
                     if (finalClass.Count > 0)
                     {

@@ -79,7 +79,8 @@ namespace DbService.Service
 
                             db.Tables.Add(new TableDto
                             {
-                                Name = dr["TABLE_NAME"].ToString()
+                                Name = dr["TABLE_NAME"].ToString(),
+                                IsView = dr["TABLE_TYPE"].ToString() == "VIEW"
                             });
                         }
                     }

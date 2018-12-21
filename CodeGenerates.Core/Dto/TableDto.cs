@@ -30,6 +30,11 @@ namespace CodeGenerates.Core.Dto
         public bool IsNeedAttributes { get; set; }
 
         /// <summary>
+        /// 是否為檢視
+        /// </summary>
+        public bool IsView { get; set; }
+
+        /// <summary>
         /// 資料欄位
         /// </summary>
         public List<ColumnDto> Columns { get; set; }
